@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Employee ERP</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-icon">E</div>
+        <div>
+          <h1>Employee ERP</h1>
+          <p>Management System</p>
+        </div>
+      </div>
+      <nav class="sidebar-nav" id="sidebarNav">
+        <button class="nav-item active" data-view="dashboard">
+          <span class="nav-icon">📊</span> Dashboard
+        </button>
+        <button class="nav-item" data-view="departments">
+          <span class="nav-icon">🏢</span> Departments
+        </button>
+        <button class="nav-item" data-view="employees">
+          <span class="nav-icon">👥</span> Employees
+        </button>
+        <button class="nav-item" data-view="roles">
+          <span class="nav-icon">🔑</span> Roles
+        </button>
+        <button class="nav-item" data-view="users">
+          <span class="nav-icon">👤</span> Users
+        </button>
+        <button class="nav-item" data-view="followup-status">
+          <span class="nav-icon">🏷️</span> Follow-up Status
+        </button>
+        <button class="nav-item" data-view="followups">
+          <span class="nav-icon">📋</span> Follow-ups
+        </button>
+      </nav>
+      <div class="sidebar-footer">
+        <button class="btn btn-ghost btn-sm" id="resetDataBtn">Reset Sample Data</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <h2 id="pageTitle">Dashboard</h2>
+          <p id="pageSubtitle">Overview of your employee management system</p>
+        </div>
+        <div class="topbar-actions">
+          <span class="badge" id="dbBadge">employee_erp</span>
+        </div>
+      </header>
+
+      <section class="content" id="content">
+        <!-- Views rendered by JS -->
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-overlay hidden" id="modalOverlay">
+    <div class="modal" id="modal">
+      <div class="modal-header">
+        <h3 id="modalTitle">Modal</h3>
+        <button class="modal-close" id="modalClose">&times;</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-footer" id="modalFooter"></div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast hidden" id="toast"></div>
+
+  <script src="js/storage.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
