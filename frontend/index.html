@@ -10,95 +10,46 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet" />
 </head>
 <body>
-  <div class="app">
-    <aside class="sidebar">
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+  <div class="app" id="app">
+    <aside class="sidebar" id="sidebar">
       <div class="sidebar-brand">
         <div class="brand-icon">E</div>
-        <div>
+        <div class="brand-text">
           <h1>Employee ERP</h1>
           <p>Management System</p>
         </div>
+        <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="Toggle sidebar" title="Collapse sidebar">
+          <svg class="toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
       </div>
-      <nav class="sidebar-nav" id="sidebarNav">
-        <button class="nav-item active" data-view="dashboard">
-          <span class="nav-icon">📊</span> Dashboard
-        </button>
-        <button class="nav-item" data-view="departments">
-          <span class="nav-icon">🏢</span> Departments
-        </button>
-        <button class="nav-item" data-view="employees">
-          <span class="nav-icon">👥</span> Employees
-        </button>
-        <button class="nav-item" data-view="roles">
-          <span class="nav-icon">🔑</span> Roles
-        </button>
-        <button class="nav-item" data-view="users">
-          <span class="nav-icon">👤</span> Users
-        </button>
-        <button class="nav-item" data-view="followup-status">
-          <span class="nav-icon">🏷️</span> Follow-up Status
-        </button>
-        <button class="nav-item" data-view="followups">
-          <span class="nav-icon">📋</span> Follow-ups
-        </button>
-
-        <div class="nav-section">Human Resources</div>
-        <button class="nav-item" data-view="attendance">
-          <span class="nav-icon">🕒</span> Attendance
-        </button>
-        <button class="nav-item" data-view="leave_types">
-          <span class="nav-icon">🗂️</span> Leave Types
-        </button>
-        <button class="nav-item" data-view="leave_requests">
-          <span class="nav-icon">📝</span> Leave Requests
-        </button>
-        <button class="nav-item" data-view="payroll">
-          <span class="nav-icon">💰</span> Payroll
-        </button>
-        <button class="nav-item" data-view="performance_reviews">
-          <span class="nav-icon">⭐</span> Performance
-        </button>
-        <button class="nav-item" data-view="job_positions">
-          <span class="nav-icon">📌</span> Job Positions
-        </button>
-        <button class="nav-item" data-view="applicants">
-          <span class="nav-icon">🧑‍💼</span> Applicants
-        </button>
-        <button class="nav-item" data-view="training_programs">
-          <span class="nav-icon">🎓</span> Training Programs
-        </button>
-        <button class="nav-item" data-view="employee_training">
-          <span class="nav-icon">📚</span> Employee Training
-        </button>
-        <button class="nav-item" data-view="benefits">
-          <span class="nav-icon">🎁</span> Benefits
-        </button>
-        <button class="nav-item" data-view="employee_benefits">
-          <span class="nav-icon">🤝</span> Employee Benefits
-        </button>
-        <button class="nav-item" data-view="shifts">
-          <span class="nav-icon">⏰</span> Shifts
-        </button>
-        <button class="nav-item" data-view="employee_shifts">
-          <span class="nav-icon">📅</span> Employee Shifts
-        </button>
-        <button class="nav-item" data-view="employee_documents">
-          <span class="nav-icon">📄</span> Documents
-        </button>
-        <button class="nav-item" data-view="exit_requests">
-          <span class="nav-icon">🚪</span> Exit Requests
-        </button>
+      <nav class="sidebar-nav" id="sidebarNav" aria-label="Main navigation">
+        <!-- Rendered by JS -->
       </nav>
       <div class="sidebar-footer">
-        <button class="btn btn-ghost btn-sm" id="resetDataBtn">Reset Sample Data</button>
+        <button class="btn btn-ghost btn-sm" id="resetDataBtn" title="Reset Sample Data">
+          <span class="btn-icon">↺</span>
+          <span class="btn-label">Reset Sample Data</span>
+        </button>
       </div>
     </aside>
 
     <main class="main">
       <header class="topbar">
-        <div>
-          <h2 id="pageTitle">Dashboard</h2>
-          <p id="pageSubtitle">Overview of your employee management system</p>
+        <div class="topbar-left">
+          <button class="topbar-menu-btn" id="mobileMenuBtn" type="button" aria-label="Open menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+          <div>
+            <h2 id="pageTitle">Dashboard</h2>
+            <p id="pageSubtitle">Overview of your employee management system</p>
+          </div>
         </div>
         <div class="topbar-actions">
           <span class="badge" id="dbBadge">employee_erp</span>
