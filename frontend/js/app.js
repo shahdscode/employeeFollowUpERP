@@ -134,7 +134,8 @@ function navigate(view) {
     followups: renderFollowups,
   };
 
-  $("#content").innerHTML = renderers[view]();
+  const renderer = renderers[view] || (() => renderModule(view));
+  $("#content").innerHTML = renderer();
   bindViewEvents(view);
 }
 
@@ -588,6 +589,357 @@ function followupDetail(f) {
   `;
 }
 
+// ─── HRM modules (config-driven) ─────────────────────────────
+
+// How to label a row when it is referenced by a foreign key.
+const REF_LABEL = {
+  employees: (e) => `${e.first_name} ${e.last_name}`,
+  users: (u) => u.username,
+  departments: (d) => d.name,
+  job_positions: (p) => p.title,
+  leave_types: (t) => t.name,
+  training_programs: (t) => t.title,
+  benefits: (b) => b.name,
+  shifts: (s) => s.shift_name,
+};
+
+function refName(table, id) {
+  const row = getById(table, id);
+  return row && REF_LABEL[table] ? REF_LABEL[table](row) : "—";
+}
+
+function money(v) {
+  if (v == null || v === "") return "—";
+  return Number(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function statusPill(val) {
+  if (!val) return "—";
+  return `<span class="status-badge status-${escapeHtml(String(val))}">${escapeHtml(String(val).replace(/_/g, " "))}</span>`;
+}
+
+// Each module: list columns + form fields. Field types drive both
+// the input rendered and how the value is coerced before saving.
+const HRM_MODULES = {
+  attendance: {
+    title: "Attendance", subtitle: "Daily employee attendance records", singular: "attendance record",
+    columns: [
+      { label: "Employee", cell: (r) => escapeHtml(refName("employees", r.employee_id)) },
+      { label: "Date", cell: (r) => formatDate(r.attendance_date) },
+      { label: "Check In", cell: (r) => escapeHtml(r.check_in || "—") },
+      { label: "Check Out", cell: (r) => escapeHtml(r.check_out || "—") },
+      { label: "Status", cell: (r) => statusPill(r.status) },
+    ],
+    fields: [
+      { name: "employee_id", label: "Employee", type: "ref", ref: "employees", required: true },
+      { name: "attendance_date", label: "Date", type: "date", required: true },
+      { name: "check_in", label: "Check In", type: "time" },
+      { name: "check_out", label: "Check Out", type: "time" },
+      { name: "status", label: "Status", type: "enum", options: ["present", "absent", "late", "half_day", "remote"] },
+    ],
+  },
+  leave_types: {
+    title: "Leave Types", subtitle: "Configure leave categories and allowances", singular: "leave type",
+    columns: [
+      { label: "Name", cell: (r) => `<strong>${escapeHtml(r.name)}</strong>` },
+      { label: "Days Allowed", cell: (r) => r.days_allowed ?? 0 },
+    ],
+    fields: [
+      { name: "name", label: "Name", type: "text", required: true },
+      { name: "days_allowed", label: "Days Allowed", type: "number" },
+    ],
+  },
+  leave_requests: {
+    title: "Leave Requests", subtitle: "Track and approve employee leave", singular: "leave request",
+    columns: [
+      { label: "Employee", cell: (r) => escapeHtml(refName("employees", r.employee_id)) },
+      { label: "Type", cell: (r) => escapeHtml(refName("leave_types", r.leave_type_id)) },
+      { label: "From", cell: (r) => formatDate(r.start_date) },
+      { label: "To", cell: (r) => formatDate(r.end_date) },
+      { label: "Approved By", cell: (r) => escapeHtml(refName("users", r.approved_by)) },
+      { label: "Status", cell: (r) => statusPill(r.status) },
+    ],
+    fields: [
+      { name: "employee_id", label: "Employee", type: "ref", ref: "employees", required: true },
+      { name: "leave_type_id", label: "Leave Type", type: "ref", ref: "leave_types", required: true },
+      { name: "start_date", label: "Start Date", type: "date", required: true },
+      { name: "end_date", label: "End Date", type: "date", required: true },
+      { name: "reason", label: "Reason", type: "textarea", full: true },
+      { name: "approved_by", label: "Approved By", type: "ref", ref: "users" },
+      { name: "status", label: "Status", type: "enum", options: ["pending", "approved", "rejected"] },
+    ],
+  },
+  payroll: {
+    title: "Payroll", subtitle: "Monthly salary and payment records", singular: "payroll record",
+    columns: [
+      { label: "Employee", cell: (r) => escapeHtml(refName("employees", r.employee_id)) },
+      { label: "Month", cell: (r) => formatDate(r.payroll_month) },
+      { label: "Basic", cell: (r) => money(r.basic_salary) },
+      { label: "Bonus", cell: (r) => money(r.bonus) },
+      { label: "Deductions", cell: (r) => money(r.deductions) },
+      { label: "Net", cell: (r) => `<strong>${money(r.net_salary)}</strong>` },
+      { label: "Paid", cell: (r) => formatDate(r.payment_date) },
+    ],
+    fields: [
+      { name: "employee_id", label: "Employee", type: "ref", ref: "employees", required: true },
+      { name: "payroll_month", label: "Payroll Month", type: "date", required: true },
+      { name: "basic_salary", label: "Basic Salary", type: "number", required: true },
+      { name: "bonus", label: "Bonus", type: "number" },
+      { name: "deductions", label: "Deductions", type: "number" },
+      { name: "net_salary", label: "Net Salary", type: "number", required: true },
+      { name: "payment_date", label: "Payment Date", type: "date" },
+    ],
+  },
+  performance_reviews: {
+    title: "Performance Reviews", subtitle: "Employee performance evaluations", singular: "review",
+    columns: [
+      { label: "Employee", cell: (r) => escapeHtml(refName("employees", r.employee_id)) },
+      { label: "Reviewer", cell: (r) => escapeHtml(refName("users", r.reviewer_id)) },
+      { label: "Period", cell: (r) => escapeHtml(r.review_period || "—") },
+      { label: "Rating", cell: (r) => (r.rating != null ? Number(r.rating).toFixed(2) : "—") },
+      { label: "Date", cell: (r) => formatDate(r.review_date) },
+    ],
+    fields: [
+      { name: "employee_id", label: "Employee", type: "ref", ref: "employees", required: true },
+      { name: "reviewer_id", label: "Reviewer", type: "ref", ref: "users", required: true },
+      { name: "review_period", label: "Review Period", type: "text" },
+      { name: "rating", label: "Rating", type: "number", step: "0.01" },
+      { name: "review_date", label: "Review Date", type: "date" },
+      { name: "comments", label: "Comments", type: "textarea", full: true },
+    ],
+  },
+  job_positions: {
+    title: "Job Positions", subtitle: "Open and closed positions", singular: "position",
+    columns: [
+      { label: "Title", cell: (r) => `<strong>${escapeHtml(r.title)}</strong>` },
+      { label: "Department", cell: (r) => escapeHtml(refName("departments", r.department_id)) },
+      { label: "Vacancies", cell: (r) => r.vacancies ?? 0 },
+      { label: "Status", cell: (r) => statusPill(r.status) },
+    ],
+    fields: [
+      { name: "title", label: "Title", type: "text", required: true },
+      { name: "department_id", label: "Department", type: "ref", ref: "departments" },
+      { name: "vacancies", label: "Vacancies", type: "number" },
+      { name: "status", label: "Status", type: "enum", options: ["open", "closed"] },
+      { name: "description", label: "Description", type: "textarea", full: true },
+    ],
+  },
+  applicants: {
+    title: "Applicants", subtitle: "Candidates applying to open positions", singular: "applicant",
+    columns: [
+      { label: "Name", cell: (r) => `<strong>${escapeHtml(r.full_name)}</strong>` },
+      { label: "Position", cell: (r) => escapeHtml(refName("job_positions", r.job_position_id)) },
+      { label: "Email", cell: (r) => escapeHtml(r.email || "—") },
+      { label: "Status", cell: (r) => statusPill(r.status) },
+    ],
+    fields: [
+      { name: "full_name", label: "Full Name", type: "text", required: true },
+      { name: "job_position_id", label: "Job Position", type: "ref", ref: "job_positions" },
+      { name: "email", label: "Email", type: "email" },
+      { name: "resume_path", label: "Resume Path", type: "text" },
+      { name: "status", label: "Status", type: "enum", options: ["applied", "interview", "accepted", "rejected"] },
+    ],
+  },
+  training_programs: {
+    title: "Training Programs", subtitle: "Available training programs", singular: "program",
+    columns: [
+      { label: "Title", cell: (r) => `<strong>${escapeHtml(r.title)}</strong>` },
+      { label: "Start", cell: (r) => formatDate(r.start_date) },
+      { label: "End", cell: (r) => formatDate(r.end_date) },
+    ],
+    fields: [
+      { name: "title", label: "Title", type: "text", required: true },
+      { name: "start_date", label: "Start Date", type: "date" },
+      { name: "end_date", label: "End Date", type: "date" },
+      { name: "description", label: "Description", type: "textarea", full: true },
+    ],
+  },
+  employee_training: {
+    title: "Employee Training", subtitle: "Training enrollment and completion", singular: "enrollment",
+    columns: [
+      { label: "Employee", cell: (r) => escapeHtml(refName("employees", r.employee_id)) },
+      { label: "Program", cell: (r) => escapeHtml(refName("training_programs", r.training_id)) },
+      { label: "Status", cell: (r) => statusPill(r.completion_status) },
+      { label: "Score", cell: (r) => (r.score != null ? Number(r.score).toFixed(2) : "—") },
+    ],
+    fields: [
+      { name: "employee_id", label: "Employee", type: "ref", ref: "employees", required: true },
+      { name: "training_id", label: "Training Program", type: "ref", ref: "training_programs", required: true },
+      { name: "completion_status", label: "Status", type: "enum", options: ["assigned", "completed"] },
+      { name: "score", label: "Score", type: "number", step: "0.01" },
+    ],
+  },
+  benefits: {
+    title: "Benefits", subtitle: "Company benefit catalog", singular: "benefit",
+    columns: [
+      { label: "Name", cell: (r) => `<strong>${escapeHtml(r.name)}</strong>` },
+      { label: "Description", cell: (r) => escapeHtml(r.description || "—") },
+    ],
+    fields: [
+      { name: "name", label: "Name", type: "text", required: true },
+      { name: "description", label: "Description", type: "textarea", full: true },
+    ],
+  },
+  employee_benefits: {
+    title: "Employee Benefits", subtitle: "Benefits assigned to employees", singular: "assignment",
+    columns: [
+      { label: "Employee", cell: (r) => escapeHtml(refName("employees", r.employee_id)) },
+      { label: "Benefit", cell: (r) => escapeHtml(refName("benefits", r.benefit_id)) },
+      { label: "Start Date", cell: (r) => formatDate(r.start_date) },
+    ],
+    fields: [
+      { name: "employee_id", label: "Employee", type: "ref", ref: "employees", required: true },
+      { name: "benefit_id", label: "Benefit", type: "ref", ref: "benefits", required: true },
+      { name: "start_date", label: "Start Date", type: "date" },
+    ],
+  },
+  shifts: {
+    title: "Shifts", subtitle: "Work shift definitions", singular: "shift",
+    columns: [
+      { label: "Name", cell: (r) => `<strong>${escapeHtml(r.shift_name || "—")}</strong>` },
+      { label: "Start", cell: (r) => escapeHtml(r.start_time || "—") },
+      { label: "End", cell: (r) => escapeHtml(r.end_time || "—") },
+    ],
+    fields: [
+      { name: "shift_name", label: "Shift Name", type: "text", required: true },
+      { name: "start_time", label: "Start Time", type: "time" },
+      { name: "end_time", label: "End Time", type: "time" },
+    ],
+  },
+  employee_shifts: {
+    title: "Employee Shifts", subtitle: "Shift assignments by employee", singular: "assignment",
+    columns: [
+      { label: "Employee", cell: (r) => escapeHtml(refName("employees", r.employee_id)) },
+      { label: "Shift", cell: (r) => escapeHtml(refName("shifts", r.shift_id)) },
+      { label: "Date", cell: (r) => formatDate(r.assigned_date) },
+    ],
+    fields: [
+      { name: "employee_id", label: "Employee", type: "ref", ref: "employees", required: true },
+      { name: "shift_id", label: "Shift", type: "ref", ref: "shifts", required: true },
+      { name: "assigned_date", label: "Assigned Date", type: "date" },
+    ],
+  },
+  employee_documents: {
+    title: "Documents", subtitle: "Employee document records", singular: "document",
+    columns: [
+      { label: "Employee", cell: (r) => escapeHtml(refName("employees", r.employee_id)) },
+      { label: "Type", cell: (r) => escapeHtml(r.document_type || "—") },
+      { label: "Name", cell: (r) => escapeHtml(r.document_name || "—") },
+      { label: "Uploaded", cell: (r) => formatDate(r.uploaded_at) },
+    ],
+    fields: [
+      { name: "employee_id", label: "Employee", type: "ref", ref: "employees", required: true },
+      { name: "document_type", label: "Document Type", type: "text" },
+      { name: "document_name", label: "Document Name", type: "text" },
+      { name: "file_path", label: "File Path", type: "text" },
+    ],
+  },
+  exit_requests: {
+    title: "Exit Requests", subtitle: "Resignation and offboarding requests", singular: "exit request",
+    columns: [
+      { label: "Employee", cell: (r) => escapeHtml(refName("employees", r.employee_id)) },
+      { label: "Resignation", cell: (r) => formatDate(r.resignation_date) },
+      { label: "Last Day", cell: (r) => formatDate(r.last_working_day) },
+      { label: "Status", cell: (r) => statusPill(r.status) },
+    ],
+    fields: [
+      { name: "employee_id", label: "Employee", type: "ref", ref: "employees", required: true },
+      { name: "resignation_date", label: "Resignation Date", type: "date" },
+      { name: "last_working_day", label: "Last Working Day", type: "date" },
+      { name: "reason", label: "Reason", type: "textarea", full: true },
+      { name: "status", label: "Status", type: "enum", options: ["pending", "approved", "rejected"] },
+    ],
+  },
+};
+
+// Register module metadata into the shared VIEWS map.
+Object.keys(HRM_MODULES).forEach((key) => {
+  VIEWS[key] = { title: HRM_MODULES[key].title, subtitle: HRM_MODULES[key].subtitle };
+});
+
+function renderModule(key) {
+  const mod = HRM_MODULES[key];
+  const rows = getAll(key);
+  const head = mod.columns.map((c) => `<th>${escapeHtml(c.label)}</th>`).join("");
+  return `
+    <div class="card">
+      <div class="card-header">
+        <h3>${escapeHtml(mod.title)} (${rows.length})</h3>
+        <button class="btn btn-primary" data-action="hrm-add" data-module="${key}">+ Add</button>
+      </div>
+      <div class="card-body table-wrap">
+        ${rows.length ? `
+          <table>
+            <thead><tr>${head}<th>Actions</th></tr></thead>
+            <tbody>
+              ${rows.map((r) => `
+                <tr>
+                  ${mod.columns.map((c) => `<td>${c.cell(r)}</td>`).join("")}
+                  <td class="actions-cell">
+                    <button class="btn btn-outline btn-sm" data-action="hrm-edit" data-module="${key}" data-id="${r.id}">Edit</button>
+                    <button class="btn btn-danger btn-sm" data-action="hrm-delete" data-module="${key}" data-id="${r.id}">Delete</button>
+                  </td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        ` : renderEmpty(`Add your first ${mod.singular} to get started.`)}
+      </div>
+    </div>
+  `;
+}
+
+function moduleField(field, row) {
+  const val = row[field.name];
+  const req = field.required ? "required" : "";
+  const wrap = (inner) => `<div class="form-group ${field.full ? "full-width" : ""}"><label>${escapeHtml(field.label)}${field.required ? " *" : ""}</label>${inner}</div>`;
+
+  if (field.type === "ref") {
+    const options = getAll(field.ref).map((o) =>
+      `<option value="${o.id}" ${val == o.id ? "selected" : ""}>${escapeHtml(REF_LABEL[field.ref](o))}</option>`
+    ).join("");
+    return wrap(`<select name="${field.name}" ${req}><option value="">— Select —</option>${options}</select>`);
+  }
+  if (field.type === "enum") {
+    const options = field.options.map((o) =>
+      `<option value="${o}" ${val === o ? "selected" : ""}>${escapeHtml(o.replace(/_/g, " "))}</option>`
+    ).join("");
+    return wrap(`<select name="${field.name}" ${req}>${options}</select>`);
+  }
+  if (field.type === "textarea") {
+    return wrap(`<textarea name="${field.name}" ${req}>${escapeHtml(val || "")}</textarea>`);
+  }
+  const step = field.step ? `step="${field.step}"` : "";
+  return wrap(`<input type="${field.type}" name="${field.name}" value="${escapeHtml(val ?? "")}" ${step} ${req} />`);
+}
+
+function moduleForm(key, row = {}) {
+  const mod = HRM_MODULES[key];
+  return `<form id="entityForm" class="form-grid">${mod.fields.map((f) => moduleField(f, row)).join("")}</form>`;
+}
+
+function showModuleModal(key, id) {
+  const mod = HRM_MODULES[key];
+  const row = id ? getById(key, id) : {};
+  openModal(`${id ? "Edit" : "Add"} ${capitalize(mod.singular)}`, moduleForm(key, row), modalFooter("Save"));
+  bindModalSave(() => {
+    const data = parseForm($("#entityForm"));
+    // Foreign-key selects come back as strings — store them as numbers.
+    mod.fields.forEach((f) => {
+      if (f.type === "ref") data[f.name] = data[f.name] ? Number(data[f.name]) : null;
+    });
+    if (id) update(key, id, data);
+    else create(key, data);
+    closeModal();
+    showToast(id ? `${capitalize(mod.singular)} updated` : `${capitalize(mod.singular)} created`);
+    navigate(currentView);
+  });
+}
+
+function capitalize(s) {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
+
 // ─── Form parsing ────────────────────────────────────────────
 
 function parseForm(form) {
@@ -646,6 +998,11 @@ function bindViewEvents(view) {
     "edit-followup": (_, id) => showFollowupModal(id),
     "view-followup": (_, id) => showFollowupDetail(id),
     "delete-followup": (_, id) => confirmDelete("followups", id, "follow-up"),
+
+    // Generic HRM module actions (module key carried on data-module).
+    "hrm-add": (_, id, mod) => showModuleModal(mod),
+    "hrm-edit": (_, id, mod) => showModuleModal(mod, id),
+    "hrm-delete": (_, id, mod) => confirmDelete(mod, id, HRM_MODULES[mod].singular),
   };
 
   content.addEventListener("click", (e) => {
@@ -653,7 +1010,7 @@ function bindViewEvents(view) {
     if (!btn) return;
     const action = btn.dataset.action;
     const id = btn.dataset.id;
-    if (handlers[action]) handlers[action](action, id);
+    if (handlers[action]) handlers[action](action, id, btn.dataset.module);
   });
 }
 

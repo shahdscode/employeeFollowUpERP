@@ -14,6 +14,22 @@ const TABLES = [
   "followups",
   "followup_comments",
   "followup_attachments",
+  // HRM modules
+  "attendance",
+  "leave_types",
+  "leave_requests",
+  "payroll",
+  "performance_reviews",
+  "job_positions",
+  "applicants",
+  "training_programs",
+  "employee_training",
+  "benefits",
+  "employee_benefits",
+  "shifts",
+  "employee_shifts",
+  "employee_documents",
+  "exit_requests",
 ];
 
 function getDb() {
@@ -74,10 +90,45 @@ function remove(table, id) {
     db.employees = db.employees.map((e) =>
       e.department_id === numId ? { ...e, department_id: null } : e
     );
+    db.job_positions = db.job_positions.map((p) =>
+      p.department_id === numId ? { ...p, department_id: null } : p
+    );
   }
   if (table === "employees") {
     db.users = db.users.filter((u) => u.employee_id !== numId);
     db.followups = db.followups.filter((f) => f.employee_id !== numId);
+    // HRM children that belong to an employee
+    const empChildren = [
+      "attendance",
+      "leave_requests",
+      "payroll",
+      "performance_reviews",
+      "employee_training",
+      "employee_benefits",
+      "employee_shifts",
+      "employee_documents",
+      "exit_requests",
+    ];
+    empChildren.forEach((t) => {
+      db[t] = db[t].filter((r) => r.employee_id !== numId);
+    });
+  }
+  if (table === "job_positions") {
+    db.applicants = db.applicants.map((a) =>
+      a.job_position_id === numId ? { ...a, job_position_id: null } : a
+    );
+  }
+  if (table === "leave_types") {
+    db.leave_requests = db.leave_requests.filter((r) => r.leave_type_id !== numId);
+  }
+  if (table === "training_programs") {
+    db.employee_training = db.employee_training.filter((r) => r.training_id !== numId);
+  }
+  if (table === "benefits") {
+    db.employee_benefits = db.employee_benefits.filter((r) => r.benefit_id !== numId);
+  }
+  if (table === "shifts") {
+    db.employee_shifts = db.employee_shifts.filter((r) => r.shift_id !== numId);
   }
   if (table === "followups") {
     db.followup_comments = db.followup_comments.filter((c) => c.followup_id !== numId);
@@ -88,6 +139,12 @@ function remove(table, id) {
     db.followup_attachments = db.followup_attachments.filter((a) => a.uploaded_by !== numId);
     db.followups = db.followups.map((f) =>
       f.created_by === numId ? { ...f, created_by: null } : f
+    );
+    db.leave_requests = db.leave_requests.map((r) =>
+      r.approved_by === numId ? { ...r, approved_by: null } : r
+    );
+    db.performance_reviews = db.performance_reviews.map((r) =>
+      r.reviewer_id === numId ? { ...r, reviewer_id: null } : r
     );
   }
 
@@ -234,6 +291,67 @@ function seedDatabase() {
         file_size: 245760,
         created_at: now,
       },
+    ],
+
+    // ─── HRM modules ───────────────────────────────────────────
+    attendance: [
+      { id: 1, employee_id: 1, attendance_date: "2026-06-24", check_in: "09:00", check_out: "17:30", status: "present", created_at: now },
+      { id: 2, employee_id: 2, attendance_date: "2026-06-24", check_in: "09:15", check_out: "17:00", status: "late", created_at: now },
+      { id: 3, employee_id: 3, attendance_date: "2026-06-24", check_in: null, check_out: null, status: "absent", created_at: now },
+    ],
+    leave_types: [
+      { id: 1, name: "Annual Leave", days_allowed: 21 },
+      { id: 2, name: "Sick Leave", days_allowed: 14 },
+      { id: 3, name: "Unpaid Leave", days_allowed: 0 },
+    ],
+    leave_requests: [
+      { id: 1, employee_id: 3, leave_type_id: 1, approved_by: 2, start_date: "2026-07-01", end_date: "2026-07-05", reason: "Family vacation", status: "approved", created_at: now },
+      { id: 2, employee_id: 1, leave_type_id: 2, approved_by: null, start_date: "2026-06-28", end_date: "2026-06-29", reason: "Flu", status: "pending", created_at: now },
+    ],
+    payroll: [
+      { id: 1, employee_id: 1, payroll_month: "2026-05-01", basic_salary: 12000, bonus: 1500, deductions: 500, net_salary: 13000, payment_date: "2026-05-28", created_at: now },
+      { id: 2, employee_id: 2, payroll_month: "2026-05-01", basic_salary: 15000, bonus: 0, deductions: 800, net_salary: 14200, payment_date: "2026-05-28", created_at: now },
+    ],
+    performance_reviews: [
+      { id: 1, employee_id: 1, reviewer_id: 2, review_period: "H1 2026", rating: 4.5, comments: "Strong technical delivery.", review_date: "2026-06-15", created_at: now },
+    ],
+    job_positions: [
+      { id: 1, department_id: 1, title: "Backend Engineer", description: "Build and maintain APIs.", vacancies: 2, status: "open", created_at: now },
+      { id: 2, department_id: 3, title: "Account Manager", description: "Manage key client accounts.", vacancies: 1, status: "open", created_at: now },
+    ],
+    applicants: [
+      { id: 1, job_position_id: 1, full_name: "Layla Mahmoud", email: "layla.m@example.com", resume_path: "/resumes/layla.pdf", status: "interview", created_at: now },
+      { id: 2, job_position_id: 1, full_name: "Yousef Adel", email: "yousef.adel@example.com", resume_path: "/resumes/yousef.pdf", status: "applied", created_at: now },
+    ],
+    training_programs: [
+      { id: 1, title: "Onboarding 101", description: "Company orientation program.", start_date: "2026-06-01", end_date: "2026-06-03", created_at: now },
+      { id: 2, title: "Advanced SQL", description: "Database performance and design.", start_date: "2026-07-10", end_date: "2026-07-12", created_at: now },
+    ],
+    employee_training: [
+      { id: 1, employee_id: 1, training_id: 1, completion_status: "completed", score: 92.0 },
+      { id: 2, employee_id: 1, training_id: 2, completion_status: "assigned", score: null },
+    ],
+    benefits: [
+      { id: 1, name: "Health Insurance", description: "Comprehensive medical coverage." },
+      { id: 2, name: "Transport Allowance", description: "Monthly commuting allowance." },
+    ],
+    employee_benefits: [
+      { id: 1, employee_id: 1, benefit_id: 1, start_date: "2022-03-15" },
+      { id: 2, employee_id: 2, benefit_id: 1, start_date: "2021-08-01" },
+    ],
+    shifts: [
+      { id: 1, shift_name: "Morning", start_time: "09:00", end_time: "17:00" },
+      { id: 2, shift_name: "Evening", start_time: "14:00", end_time: "22:00" },
+    ],
+    employee_shifts: [
+      { id: 1, employee_id: 1, shift_id: 1, assigned_date: "2026-06-24" },
+      { id: 2, employee_id: 3, shift_id: 2, assigned_date: "2026-06-24" },
+    ],
+    employee_documents: [
+      { id: 1, employee_id: 1, document_type: "Contract", document_name: "employment_contract.pdf", file_path: "/docs/emp1_contract.pdf", uploaded_at: now },
+    ],
+    exit_requests: [
+      { id: 1, employee_id: 3, resignation_date: "2026-06-20", last_working_day: "2026-07-20", reason: "New opportunity", status: "pending", created_at: now },
     ],
   };
 

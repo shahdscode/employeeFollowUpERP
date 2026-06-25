@@ -85,6 +85,16 @@ body {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  overflow-y: auto;
+}
+
+.nav-section {
+  padding: 14px 14px 6px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
 }
 
 .nav-item {
@@ -364,6 +374,12 @@ tr:hover td {
 .status-suspended { background: #fee2e2; color: #991b1b; }
 .status-resigned { background: #f1f5f9; color: #475569; }
 .status-inactive { background: #f1f5f9; color: #64748b; }
+
+/* HRM status badges */
+.status-present, .status-approved, .status-accepted, .status-completed, .status-open { background: #dcfce7; color: #166534; }
+.status-late, .status-pending, .status-interview, .status-applied, .status-half_day, .status-assigned { background: #fef3c7; color: #92400e; }
+.status-absent, .status-rejected, .status-closed { background: #fee2e2; color: #991b1b; }
+.status-remote { background: #e0f2fe; color: #075985; }
 
 .priority-1 { background: #fee2e2; color: #991b1b; }
 .priority-2 { background: #fef3c7; color: #92400e; }
