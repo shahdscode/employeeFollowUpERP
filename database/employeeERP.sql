@@ -43,7 +43,7 @@ CREATE TABLE employees (
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
-    FOREIGN KEY (department_id) REFERENCES departments(id) # becuz department contained employees (relationship)
+    FOREIGN KEY (department_id) REFERENCES departments(id) # (relationship) becuz department contained employees
     ON UPDATE CASCADE ON DELETE SET NULL
 );
 
@@ -60,10 +60,10 @@ CREATE TABLE users (
     last_login_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
-    FOREIGN KEY (employee_id) REFERENCES employees(id) # becuz employee has user account (relationship)
+    FOREIGN KEY (employee_id) REFERENCES employees(id) # (relationship) becuz employee has user account
     ON UPDATE CASCADE ON DELETE CASCADE,
     
-    FOREIGN KEY (role_id) REFERENCES roles(id) # becuz users r assigned roles (relationship)
+    FOREIGN KEY (role_id) REFERENCES roles(id) # (relationship) becuz users r assigned roles
 	ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
@@ -95,13 +95,13 @@ CREATE TABLE followups (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
-    FOREIGN KEY (employee_id) REFERENCES employees(id) # becuz employees are assigned follow ups (relationship)
+    FOREIGN KEY (employee_id) REFERENCES employees(id) # (relationship) becuz employees are assigned follow ups
     ON UPDATE CASCADE ON DELETE CASCADE,
     
-    FOREIGN KEY (created_by) REFERENCES users(id) # becuz users created follow ups (relationship)
+    FOREIGN KEY (created_by) REFERENCES users(id) # (relationship) becuz users created follow ups
     ON UPDATE CASCADE ON DELETE RESTRICT,
     
-    FOREIGN KEY (status_id) REFERENCES followup_status(id) # becuz follow up status labels follow ups (relationship)
+    FOREIGN KEY (status_id) REFERENCES followup_status(id) # (relationship) becuz follow up status labels follow ups
     ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
@@ -115,10 +115,10 @@ CREATE TABLE followup_comments (
     comment_text TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (followup_id) REFERENCES followups(id) # becuz follow ups has follow up comments (relationship)
+    FOREIGN KEY (followup_id) REFERENCES followups(id) # (relationship) becuz follow ups has follow up comments 
     ON UPDATE CASCADE ON DELETE CASCADE,
 
-    FOREIGN KEY (user_id) REFERENCES users(id) # becuz user writes follow up comments (relationship)
+    FOREIGN KEY (user_id) REFERENCES users(id) # (relationship) becuz user writes follow up comments
     ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
@@ -135,10 +135,10 @@ CREATE TABLE followup_attachments (
     file_size BIGINT UNSIGNED,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (followup_id) REFERENCES followups(id) # becuz follow ups have follow up attachements (relationship)
+    FOREIGN KEY (followup_id) REFERENCES followups(id) # (relationship) becuz follow ups have follow up attachements
     ON UPDATE CASCADE ON DELETE CASCADE,
 
-    FOREIGN KEY (uploaded_by) REFERENCES users(id) # becuz user uploads follow up attachements (relationship)
+    FOREIGN KEY (uploaded_by) REFERENCES users(id) # (relationship) becuz user uploads follow up attachements
     ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
@@ -164,7 +164,7 @@ CREATE TABLE attendance (
 
     UNIQUE KEY uq_attendance_emp_date (employee_id, attendance_date), # one record per employee per day
 
-    FOREIGN KEY (employee_id) REFERENCES employees(id) # becuz employee has attendance records
+    FOREIGN KEY (employee_id) REFERENCES employees(id) # (relationship) becuz employee has attendance records
     ON UPDATE CASCADE ON DELETE CASCADE
 );
 
@@ -195,13 +195,13 @@ CREATE TABLE leave_requests (
     ) DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (employee_id) REFERENCES employees(id) # becuz employees submit leave requests
+    FOREIGN KEY (employee_id) REFERENCES employees(id) # (relationship) becuz employees submit leave requests
     ON UPDATE CASCADE ON DELETE CASCADE,
 
-    FOREIGN KEY (leave_type_id) REFERENCES leave_types(id) # becuz leave request belongs to leave type
+    FOREIGN KEY (leave_type_id) REFERENCES leave_types(id) # (relationship) becuz leave request belongs to leave type
     ON UPDATE CASCADE ON DELETE RESTRICT,
 
-    FOREIGN KEY (approved_by) REFERENCES users(id) # becuz manager approves leave request
+    FOREIGN KEY (approved_by) REFERENCES users(id) # (relationship) becuz manager approves leave request
     ON UPDATE CASCADE ON DELETE SET NULL
 );
 
@@ -221,7 +221,7 @@ CREATE TABLE payroll (
 
     UNIQUE KEY uq_payroll_emp_month (employee_id, payroll_month), # one payslip per employee per month
 
-    FOREIGN KEY (employee_id) REFERENCES employees(id) # becuz payroll belongs to employee
+    FOREIGN KEY (employee_id) REFERENCES employees(id) # (relationship) becuz payroll belongs to employee
     ON UPDATE CASCADE ON DELETE CASCADE
 );
 
@@ -238,10 +238,10 @@ CREATE TABLE performance_reviews (
     review_date DATE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (employee_id) REFERENCES employees(id) # becuz employees receive reviews
+    FOREIGN KEY (employee_id) REFERENCES employees(id) # (relationship) becuz employees receive reviews
     ON UPDATE CASCADE ON DELETE CASCADE,
 
-    FOREIGN KEY (reviewer_id) REFERENCES users(id) # becuz user performs review
+    FOREIGN KEY (reviewer_id) REFERENCES users(id) # (relationship) becuz user performs review
     ON UPDATE CASCADE ON DELETE RESTRICT
 );
 
@@ -260,7 +260,7 @@ CREATE TABLE job_positions (
     ) DEFAULT 'open',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (department_id) REFERENCES departments(id) # becuz department opens job positions
+    FOREIGN KEY (department_id) REFERENCES departments(id) # (relationship) becuz department opens job positions
     ON UPDATE CASCADE ON DELETE SET NULL
 );
 
@@ -281,7 +281,7 @@ CREATE TABLE applicants (
     ) DEFAULT 'applied',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (job_position_id) REFERENCES job_positions(id) # becuz applicant applies to job position
+    FOREIGN KEY (job_position_id) REFERENCES job_positions(id) # (relationship) becuz applicant applies to job position
     ON UPDATE CASCADE ON DELETE SET NULL
 );
 
@@ -309,13 +309,13 @@ CREATE TABLE employee_training (
         'completed'
     ) DEFAULT 'assigned',
     score DECIMAL(5,2),
-
+    
     UNIQUE KEY uq_emp_training (employee_id, training_id), # no duplicate enrollment
 
-    FOREIGN KEY (employee_id) REFERENCES employees(id) # becuz employee attends training
+    FOREIGN KEY (employee_id) REFERENCES employees(id) # (relationship) becuz employee attends training
     ON UPDATE CASCADE ON DELETE CASCADE,
 
-    FOREIGN KEY (training_id) REFERENCES training_programs(id) # becuz training assigned to employees
+    FOREIGN KEY (training_id) REFERENCES training_programs(id) # (relationship) becuz training is assigned to employees
     ON UPDATE CASCADE ON DELETE CASCADE
 );
 
@@ -339,10 +339,10 @@ CREATE TABLE employee_benefits (
 
     UNIQUE KEY uq_emp_benefit (employee_id, benefit_id), # no duplicate benefit assignment
 
-    FOREIGN KEY (employee_id) REFERENCES employees(id) # becuz employee receives benefits
+    FOREIGN KEY (employee_id) REFERENCES employees(id) # (relationship) becuz employee receives benefits
     ON UPDATE CASCADE ON DELETE CASCADE,
 
-    FOREIGN KEY (benefit_id) REFERENCES benefits(id) # becuz benefit assigned to employee
+    FOREIGN KEY (benefit_id) REFERENCES benefits(id) # (relationship) becuz benefit is assigned to employee
     ON UPDATE CASCADE ON DELETE CASCADE
 );
 
@@ -367,10 +367,10 @@ CREATE TABLE employee_shifts (
 
     UNIQUE KEY uq_emp_shift_date (employee_id, shift_id, assigned_date), # no duplicate shift per day
 
-    FOREIGN KEY (employee_id) REFERENCES employees(id) # becuz employee assigned shift
+    FOREIGN KEY (employee_id) REFERENCES employees(id) # (relationship) becuz employee is assigned shift
     ON UPDATE CASCADE ON DELETE CASCADE,
 
-    FOREIGN KEY (shift_id) REFERENCES shifts(id) # becuz shift assigned to employees
+    FOREIGN KEY (shift_id) REFERENCES shifts(id) # (relationship) becuz shift is assigned to employees
     ON UPDATE CASCADE ON DELETE CASCADE
 );
 
@@ -385,7 +385,7 @@ CREATE TABLE employee_documents (
     file_path VARCHAR(500),
     uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (employee_id) REFERENCES employees(id) # becuz employee owns documents
+    FOREIGN KEY (employee_id) REFERENCES employees(id) # (relationship) becuz employee owns documents
     ON UPDATE CASCADE ON DELETE CASCADE
 );
 
@@ -405,6 +405,6 @@ CREATE TABLE exit_requests (
     ) DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (employee_id) REFERENCES employees(id) # becuz employee submits resignation
+    FOREIGN KEY (employee_id) REFERENCES employees(id) # (relationship) becuz employee can submit resignation
     ON UPDATE CASCADE ON DELETE CASCADE
 );
