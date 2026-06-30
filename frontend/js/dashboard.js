@@ -3,15 +3,17 @@
  */
 
 const CHART_COLORS = [
-  "#2563eb",
-  "#16a34a",
-  "#d97706",
-  "#dc2626",
-  "#7c3aed",
-  "#0891b2",
-  "#db2777",
-  "#64748b",
+  "#4f46e5",
+  "#15a34a",
+  "#f59e0b",
+  "#e11d48",
+  "#0ea5e9",
+  "#8b5cf6",
+  "#14b8a6",
+  "#94a3b8",
 ];
+
+const CHART_PRIMARY = "#4f46e5";
 
 let _dashboardCharts = [];
 
@@ -22,7 +24,7 @@ function destroyDashboardCharts() {
 
 function chartDefaults() {
   if (!window.Chart) return;
-  Chart.defaults.font.family = '"DM Sans", system-ui, sans-serif';
+  Chart.defaults.font.family = '"Inter", system-ui, sans-serif';
   Chart.defaults.color = "#64748b";
   Chart.defaults.plugins.legend.labels.usePointStyle = true;
   Chart.defaults.plugins.legend.labels.padding = 16;
@@ -79,9 +81,9 @@ function barConfig(labels, data, color) {
       labels,
       datasets: [{
         data,
-        backgroundColor: color || "#2563eb",
-        borderRadius: 6,
-        maxBarThickness: 48,
+        backgroundColor: color || CHART_PRIMARY,
+        borderRadius: 8,
+        maxBarThickness: 46,
       }],
     },
     options: {
@@ -103,12 +105,12 @@ function lineConfig(labels, data) {
       labels,
       datasets: [{
         data,
-        borderColor: "#2563eb",
-        backgroundColor: "rgba(37, 99, 235, 0.1)",
+        borderColor: CHART_PRIMARY,
+        backgroundColor: "rgba(79, 70, 229, 0.1)",
         fill: true,
         tension: 0.35,
         pointRadius: 4,
-        pointBackgroundColor: "#2563eb",
+        pointBackgroundColor: CHART_PRIMARY,
       }],
     },
     options: {
@@ -152,7 +154,7 @@ function initDashboardCharts() {
   const statusCounts = countBy(emps, (e) => e.employment_status);
   const empStatusLabels = Object.keys(statusCounts).map((k) => statusLabels[k] || k);
   const empStatusData = Object.values(statusCounts);
-  addChart("chartEmpStatus", doughnutConfig(empStatusLabels, empStatusData, ["#16a34a", "#d97706", "#dc2626", "#64748b"]));
+  addChart("chartEmpStatus", doughnutConfig(empStatusLabels, empStatusData, ["#15a34a", "#f59e0b", "#e11d48", "#94a3b8"]));
 
   // Follow-ups by status
   const fuByStatus = {};
@@ -161,7 +163,7 @@ function initDashboardCharts() {
     const name = s ? s.name : "Unknown";
     fuByStatus[name] = (fuByStatus[name] || 0) + 1;
   });
-  addChart("chartFollowups", barConfig(Object.keys(fuByStatus), Object.values(fuByStatus), "#2563eb"));
+  addChart("chartFollowups", barConfig(Object.keys(fuByStatus), Object.values(fuByStatus), CHART_PRIMARY));
 
   // Attendance breakdown
   const attLabels = { present: "Present", absent: "Absent", late: "Late", half_day: "Half Day", remote: "Remote" };
@@ -171,7 +173,7 @@ function initDashboardCharts() {
     barConfig(
       Object.keys(attCounts).map((k) => attLabels[k] || k),
       Object.values(attCounts),
-      "#16a34a"
+      "#15a34a"
     )
   );
 
@@ -183,7 +185,7 @@ function initDashboardCharts() {
     doughnutConfig(
       Object.keys(leaveCounts).map((k) => leaveLabels[k] || k),
       Object.values(leaveCounts),
-      ["#d97706", "#16a34a", "#dc2626"]
+      ["#f59e0b", "#15a34a", "#e11d48"]
     )
   );
 
@@ -204,7 +206,7 @@ function initDashboardCharts() {
     barConfig(
       Object.keys(appCounts).map((k) => appLabels[k] || k),
       Object.values(appCounts),
-      "#7c3aed"
+      "#8b5cf6"
     )
   );
 
@@ -216,7 +218,7 @@ function initDashboardCharts() {
     doughnutConfig(
       Object.keys(priCounts).map((k) => priLabels[k] || k),
       Object.values(priCounts),
-      ["#dc2626", "#d97706", "#2563eb"]
+      ["#e11d48", "#f59e0b", "#4f46e5"]
     )
   );
 }
