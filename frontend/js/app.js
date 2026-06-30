@@ -14,6 +14,169 @@ const VIEWS = {
 
 let currentView = "dashboard";
 
+const NAV_ICONS = {
+  dashboard: "📊",
+  departments: "🏢",
+  employees: "👥",
+  roles: "🔑",
+  users: "👤",
+  "followup-status": "🏷️",
+  followups: "📋",
+  attendance: "🕒",
+  leave_types: "🗂️",
+  leave_requests: "📝",
+  payroll: "💰",
+  performance_reviews: "⭐",
+  job_positions: "📌",
+  applicants: "🧑‍💼",
+  training_programs: "🎓",
+  employee_training: "📚",
+  benefits: "🎁",
+  employee_benefits: "🤝",
+  shifts: "⏰",
+  employee_shifts: "📅",
+  employee_documents: "📄",
+  exit_requests: "🚪",
+};
+
+const NAV_GROUPS = [
+  {
+    id: "overview",
+    label: "Overview",
+    icon: "🏠",
+    defaultOpen: true,
+    items: ["dashboard"],
+  },
+  {
+    id: "organization",
+    label: "Organization",
+    icon: "🏢",
+    defaultOpen: true,
+    items: ["departments", "employees", "roles", "users"],
+  },
+  {
+    id: "followups",
+    label: "Follow-ups",
+    icon: "📋",
+    defaultOpen: false,
+    items: ["followup-status", "followups"],
+  },
+  {
+    id: "time",
+    label: "Time & Attendance",
+    icon: "🕒",
+    defaultOpen: false,
+    items: ["attendance", "leave_types", "leave_requests", "shifts", "employee_shifts"],
+  },
+  {
+    id: "compensation",
+    label: "Payroll & Benefits",
+    icon: "💰",
+    defaultOpen: false,
+    items: ["payroll", "benefits", "employee_benefits"],
+  },
+  {
+    id: "talent",
+    label: "Talent & Training",
+    icon: "🎓",
+    defaultOpen: false,
+    items: ["performance_reviews", "job_positions", "applicants", "training_programs", "employee_training"],
+  },
+  {
+    id: "admin",
+    label: "Administration",
+    icon: "📁",
+    defaultOpen: false,
+    items: ["employee_documents", "exit_requests"],
+  },
+];
+
+function navItemLabel(view) {
+  return VIEWS[view]?.title || view;
+}
+
+function renderNavItem(view) {
+  const label = navItemLabel(view);
+  const icon = NAV_ICONS[view] || "•";
+  return `
+    <button class="nav-item" data-view="${view}" data-tooltip="${escapeHtml(label)}" title="${escapeHtml(label)}">
+      <span class="nav-icon">${icon}</span>
+      <span class="nav-label">${escapeHtml(label)}</span>
+    </button>`;
+}
+
+function renderSidebarNav() {
+  const openGroups = JSON.parse(localStorage.getItem("navOpenGroups") || "null") || {};
+  const html = NAV_GROUPS.map((group) => {
+    const isOpen = openGroups[group.id] ?? group.defaultOpen;
+    const items = group.items.map(renderNavItem).join("");
+    return `
+      <div class="nav-group${isOpen ? " open" : ""}" data-group="${group.id}">
+        <button class="nav-group-toggle" type="button" aria-expanded="${isOpen}">
+          <span class="nav-group-icon">${group.icon}</span>
+          <span class="nav-group-label">${escapeHtml(group.label)}</span>
+          <svg class="nav-group-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </button>
+        <div class="nav-group-items">
+          <div class="nav-group-items-inner">${items}</div>
+        </div>
+      </div>`;
+  }).join("");
+  $("#sidebarNav").innerHTML = html;
+}
+
+function getGroupForView(view) {
+  return NAV_GROUPS.find((g) => g.items.includes(view));
+}
+
+function expandNavGroup(groupId) {
+  const group = document.querySelector(`.nav-group[data-group="${groupId}"]`);
+  if (!group) return;
+  group.classList.add("open");
+  const toggle = group.querySelector(".nav-group-toggle");
+  if (toggle) toggle.setAttribute("aria-expanded", "true");
+  const openGroups = JSON.parse(localStorage.getItem("navOpenGroups") || "{}");
+  openGroups[groupId] = true;
+  localStorage.setItem("navOpenGroups", JSON.stringify(openGroups));
+}
+
+function toggleNavGroup(groupId) {
+  const group = document.querySelector(`.nav-group[data-group="${groupId}"]`);
+  if (!group) return;
+  const isOpen = group.classList.toggle("open");
+  group.querySelector(".nav-group-toggle")?.setAttribute("aria-expanded", String(isOpen));
+  const openGroups = JSON.parse(localStorage.getItem("navOpenGroups") || "{}");
+  openGroups[groupId] = isOpen;
+  localStorage.setItem("navOpenGroups", JSON.stringify(openGroups));
+}
+
+function isSidebarCollapsed() {
+  return $("#sidebar").classList.contains("collapsed");
+}
+
+function setSidebarCollapsed(collapsed) {
+  $("#sidebar").classList.toggle("collapsed", collapsed);
+  const toggle = $("#sidebarToggle");
+  toggle.title = collapsed ? "Expand sidebar" : "Collapse sidebar";
+  localStorage.setItem("sidebarCollapsed", collapsed ? "1" : "0");
+}
+
+function toggleSidebar() {
+  setSidebarCollapsed(!isSidebarCollapsed());
+}
+
+function openMobileSidebar() {
+  $("#sidebar").classList.add("mobile-open");
+  $("#sidebarBackdrop").classList.add("visible");
+}
+
+function closeMobileSidebar() {
+  $("#sidebar").classList.remove("mobile-open");
+  $("#sidebarBackdrop").classList.remove("visible");
+}
+
 // ─── Helpers ───────────────────────────────────────────────
 
 function $(sel) {
@@ -114,7 +277,7 @@ function renderEmpty(msg) {
 
 // ─── Navigation ────────────────────────────────────────────
 
-function navigate(view) {
+async function navigate(view) {
   currentView = view;
   const meta = VIEWS[view];
   $("#pageTitle").textContent = meta.title;
@@ -124,19 +287,42 @@ function navigate(view) {
     btn.classList.toggle("active", btn.dataset.view === view);
   });
 
-  const renderers = {
-    dashboard: renderDashboard,
-    departments: renderDepartments,
-    employees: renderEmployees,
-    roles: renderRoles,
-    users: renderUsers,
-    "followup-status": renderFollowupStatus,
-    followups: renderFollowups,
-  };
+  const group = getGroupForView(view);
+  if (group) expandNavGroup(group.id);
 
-  const renderer = renderers[view] || (() => renderModule(view));
-  $("#content").innerHTML = renderer();
-  bindViewEvents(view);
+  closeMobileSidebar();
+
+  $("#content").innerHTML = `<div class="loading-state"><div class="loading-spinner"></div><p>Loading...</p></div>`;
+
+  try {
+    await refreshViewData(view);
+
+    const renderers = {
+      dashboard: renderDashboard,
+      departments: renderDepartments,
+      employees: renderEmployees,
+      roles: renderRoles,
+      users: renderUsers,
+      "followup-status": renderFollowupStatus,
+      followups: renderFollowups,
+    };
+
+    const renderer = renderers[view] || (() => renderModule(view));
+    $("#content").innerHTML = renderer();
+    bindViewEvents(view);
+    if (view === "dashboard") {
+      requestAnimationFrame(() => initDashboardCharts());
+    } else {
+      destroyDashboardCharts();
+    }
+  } catch (err) {
+    $("#content").innerHTML = `
+      <div class="empty-state">
+        <strong>Failed to load data</strong>
+        <p>${escapeHtml(err.message)}</p>
+        <button class="btn btn-primary" style="margin-top:16px" onclick="navigate('${view}')">Retry</button>
+      </div>`;
+  }
 }
 
 // ─── Dashboard ─────────────────────────────────────────────
@@ -150,17 +336,57 @@ function renderDashboard() {
     const s = getById("followup_status", f.status_id);
     return s && !s.is_closed;
   });
+  const pendingLeave = getAll("leave_requests").filter((r) => r.status === "pending").length;
+  const totalPayroll = getAll("payroll").reduce((sum, p) => sum + Number(p.net_salary || 0), 0);
 
   const recentEmps = [...emps].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 5);
   const recentFollowups = [...followups].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 5);
 
   return `
-    <div class="stats-grid">
+    <div class="stats-grid stats-grid-6">
       <div class="stat-card"><div class="label">Departments</div><div class="value primary">${depts.length}</div></div>
-      <div class="stat-card"><div class="label">Employees</div><div class="value">${emps.length}</div></div>
+      <div class="stat-card"><div class="label">Total Employees</div><div class="value">${emps.length}</div></div>
       <div class="stat-card"><div class="label">Active Employees</div><div class="value success">${activeEmps.length}</div></div>
       <div class="stat-card"><div class="label">Open Follow-ups</div><div class="value warning">${openFollowups.length}</div></div>
+      <div class="stat-card"><div class="label">Pending Leave</div><div class="value warning">${pendingLeave}</div></div>
+      <div class="stat-card"><div class="label">Total Payroll</div><div class="value primary">${formatMoney(totalPayroll)}</div></div>
     </div>
+
+    <div class="charts-grid">
+      <div class="card chart-card">
+        <div class="card-header"><h3>Employees by Department</h3></div>
+        <div class="chart-wrap"><canvas id="chartDeptEmployees"></canvas></div>
+      </div>
+      <div class="card chart-card">
+        <div class="card-header"><h3>Employment Status</h3></div>
+        <div class="chart-wrap"><canvas id="chartEmpStatus"></canvas></div>
+      </div>
+      <div class="card chart-card">
+        <div class="card-header"><h3>Follow-ups by Status</h3></div>
+        <div class="chart-wrap"><canvas id="chartFollowups"></canvas></div>
+      </div>
+      <div class="card chart-card">
+        <div class="card-header"><h3>Attendance Breakdown</h3></div>
+        <div class="chart-wrap"><canvas id="chartAttendance"></canvas></div>
+      </div>
+      <div class="card chart-card">
+        <div class="card-header"><h3>Leave Requests</h3></div>
+        <div class="chart-wrap"><canvas id="chartLeave"></canvas></div>
+      </div>
+      <div class="card chart-card">
+        <div class="card-header"><h3>Payroll Trend</h3></div>
+        <div class="chart-wrap"><canvas id="chartPayroll"></canvas></div>
+      </div>
+      <div class="card chart-card">
+        <div class="card-header"><h3>Recruitment Pipeline</h3></div>
+        <div class="chart-wrap"><canvas id="chartApplicants"></canvas></div>
+      </div>
+      <div class="card chart-card">
+        <div class="card-header"><h3>Follow-up Priority</h3></div>
+        <div class="chart-wrap"><canvas id="chartPriority"></canvas></div>
+      </div>
+    </div>
+
     <div class="dashboard-grid">
       <div class="card">
         <div class="card-header"><h3>Recent Employees</h3></div>
@@ -186,6 +412,10 @@ function renderDashboard() {
       </div>
     </div>
   `;
+}
+
+function formatMoney(n) {
+  return Number(n).toLocaleString("en-US", { maximumFractionDigits: 0 });
 }
 
 // ─── Departments ─────────────────────────────────────────────
@@ -922,17 +1152,16 @@ function showModuleModal(key, id) {
   const mod = HRM_MODULES[key];
   const row = id ? getById(key, id) : {};
   openModal(`${id ? "Edit" : "Add"} ${capitalize(mod.singular)}`, moduleForm(key, row), modalFooter("Save"));
-  bindModalSave(() => {
+  bindModalSave(async () => {
     const data = parseForm($("#entityForm"));
-    // Foreign-key selects come back as strings — store them as numbers.
     mod.fields.forEach((f) => {
       if (f.type === "ref") data[f.name] = data[f.name] ? Number(data[f.name]) : null;
     });
-    if (id) update(key, id, data);
-    else create(key, data);
+    if (id) await update(key, id, data);
+    else await create(key, data);
     closeModal();
     showToast(id ? `${capitalize(mod.singular)} updated` : `${capitalize(mod.singular)} created`);
-    navigate(currentView);
+    await navigate(currentView);
   });
 }
 
@@ -1016,94 +1245,100 @@ function bindViewEvents(view) {
 
 function confirmDelete(table, id, label) {
   if (!confirm(`Delete this ${label}? This action cannot be undone.`)) return;
-  remove(table, id);
-  showToast(`${label.charAt(0).toUpperCase() + label.slice(1)} deleted`);
-  navigate(currentView);
+  (async () => {
+    try {
+      await remove(table, id);
+      showToast(`${label.charAt(0).toUpperCase() + label.slice(1)} deleted`);
+      await navigate(currentView);
+    } catch (err) {
+      showToast(err.message || "Delete failed");
+    }
+  })();
 }
 
 function showDepartmentModal(id) {
   const d = id ? getById("departments", id) : {};
   openModal(id ? "Edit Department" : "Add Department", departmentForm(d), modalFooter("Save"));
-  bindModalSave(() => {
+  bindModalSave(async () => {
     const data = parseForm($("#entityForm"));
-    if (id) update("departments", id, data);
-    else create("departments", data);
+    if (id) await update("departments", id, data);
+    else await create("departments", data);
     closeModal();
     showToast(id ? "Department updated" : "Department created");
-    navigate(currentView);
+    await navigate(currentView);
   });
 }
 
 function showEmployeeModal(id) {
   const e = id ? getById("employees", id) : {};
   openModal(id ? "Edit Employee" : "Add Employee", employeeForm(e), modalFooter("Save"));
-  bindModalSave(() => {
+  bindModalSave(async () => {
     const data = parseForm($("#entityForm"));
     if (data.department_id) data.department_id = Number(data.department_id);
-    if (id) update("employees", id, data);
-    else create("employees", data);
+    if (id) await update("employees", id, data);
+    else await create("employees", data);
     closeModal();
     showToast(id ? "Employee updated" : "Employee created");
-    navigate(currentView);
+    await navigate(currentView);
   });
 }
 
 function showRoleModal(id) {
   const r = id ? getById("roles", id) : {};
   openModal(id ? "Edit Role" : "Add Role", roleForm(r), modalFooter("Save"));
-  bindModalSave(() => {
+  bindModalSave(async () => {
     const data = parseForm($("#entityForm"));
-    if (id) update("roles", id, data);
-    else create("roles", data);
+    if (id) await update("roles", id, data);
+    else await create("roles", data);
     closeModal();
     showToast(id ? "Role updated" : "Role created");
-    navigate(currentView);
+    await navigate(currentView);
   });
 }
 
 function showUserModal(id) {
   const u = id ? getById("users", id) : {};
   openModal(id ? "Edit User" : "Add User", userForm(u), modalFooter("Save"));
-  bindModalSave(() => {
+  bindModalSave(async () => {
     const data = parseForm($("#entityForm"));
     data.employee_id = Number(data.employee_id);
     data.role_id = Number(data.role_id);
     if (id && !data.password_hash) delete data.password_hash;
-    if (id) update("users", id, data);
-    else create("users", data);
+    if (id) await update("users", id, data);
+    else await create("users", data);
     closeModal();
     showToast(id ? "User updated" : "User created");
-    navigate(currentView);
+    await navigate(currentView);
   });
 }
 
 function showStatusModal(id) {
   const s = id ? getById("followup_status", id) : {};
   openModal(id ? "Edit Status" : "Add Status", statusForm(s), modalFooter("Save"));
-  bindModalSave(() => {
+  bindModalSave(async () => {
     const data = parseForm($("#entityForm"));
-    if (id) update("followup_status", id, data);
-    else create("followup_status", data);
+    if (id) await update("followup_status", id, data);
+    else await create("followup_status", data);
     closeModal();
     showToast(id ? "Status updated" : "Status created");
-    navigate(currentView);
+    await navigate(currentView);
   });
 }
 
 function showFollowupModal(id) {
   const f = id ? getById("followups", id) : {};
   openModal(id ? "Edit Follow-up" : "Add Follow-up", followupForm(f), modalFooter("Save"));
-  bindModalSave(() => {
+  bindModalSave(async () => {
     const data = parseForm($("#entityForm"));
     data.employee_id = Number(data.employee_id);
     data.created_by = Number(data.created_by);
     data.status_id = Number(data.status_id);
     data.priority_level = Number(data.priority_level);
-    if (id) update("followups", id, data);
-    else create("followups", data);
+    if (id) await update("followups", id, data);
+    else await create("followups", data);
     closeModal();
     showToast(id ? "Follow-up updated" : "Follow-up created");
-    navigate(currentView);
+    await navigate(currentView);
   });
 }
 
@@ -1115,67 +1350,121 @@ function showFollowupDetail(id) {
 
   const commentForm = $("#addCommentForm");
   if (commentForm) {
-    commentForm.onsubmit = (e) => {
+    commentForm.onsubmit = async (e) => {
       e.preventDefault();
-      const data = parseForm(commentForm);
-      create("followup_comments", {
-        followup_id: Number(id),
-        user_id: Number(data.user_id),
-        comment_text: data.comment_text,
-      });
-      showToast("Comment added");
-      showFollowupDetail(id);
+      try {
+        const data = parseForm(commentForm);
+        await create("followup_comments", {
+          followup_id: Number(id),
+          user_id: Number(data.user_id),
+          comment_text: data.comment_text,
+        });
+        showToast("Comment added");
+        await refreshViewData("followups");
+        showFollowupDetail(id);
+      } catch (err) {
+        showToast(err.message || "Failed to add comment");
+      }
     };
   }
 
   const attachForm = $("#addAttachmentForm");
   if (attachForm) {
-    attachForm.onsubmit = (e) => {
+    attachForm.onsubmit = async (e) => {
       e.preventDefault();
-      const data = parseForm(attachForm);
-      create("followup_attachments", {
-        followup_id: Number(id),
-        uploaded_by: Number(data.uploaded_by),
-        file_name: data.file_name,
-        file_path: data.file_path || `/uploads/${data.file_name}`,
-        mime_type: data.mime_type,
-        file_size: data.file_size,
-      });
-      showToast("Attachment added");
-      showFollowupDetail(id);
+      try {
+        const data = parseForm(attachForm);
+        await create("followup_attachments", {
+          followup_id: Number(id),
+          uploaded_by: Number(data.uploaded_by),
+          file_name: data.file_name,
+          file_path: data.file_path || `/uploads/${data.file_name}`,
+          mime_type: data.mime_type,
+          file_size: data.file_size,
+        });
+        showToast("Attachment added");
+        await refreshViewData("followups");
+        showFollowupDetail(id);
+      } catch (err) {
+        showToast(err.message || "Failed to add attachment");
+      }
     };
   }
 }
 
 function bindModalSave(onSave) {
   $("#modalCancel").onclick = closeModal;
-  $("#modalSave").onclick = () => {
+  $("#modalSave").onclick = async () => {
     const form = $("#entityForm");
     if (form && !form.reportValidity()) return;
-    onSave();
+    const saveBtn = $("#modalSave");
+    saveBtn.disabled = true;
+    try {
+      await onSave();
+    } catch (err) {
+      showToast(err.message || "Operation failed");
+    } finally {
+      saveBtn.disabled = false;
+    }
   };
 }
 
 // ─── Init ────────────────────────────────────────────────────
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  renderSidebarNav();
+
+  if (localStorage.getItem("sidebarCollapsed") === "1") {
+    setSidebarCollapsed(true);
+  }
+
   $("#sidebarNav").addEventListener("click", (e) => {
+    const groupToggle = e.target.closest(".nav-group-toggle");
+    if (groupToggle) {
+      const group = groupToggle.closest(".nav-group");
+      if (group) toggleNavGroup(group.dataset.group);
+      return;
+    }
     const btn = e.target.closest(".nav-item");
     if (btn) navigate(btn.dataset.view);
   });
+
+  $("#sidebarToggle").addEventListener("click", toggleSidebar);
+  $("#mobileMenuBtn").addEventListener("click", openMobileSidebar);
+  $("#sidebarBackdrop").addEventListener("click", closeMobileSidebar);
 
   $("#modalClose").onclick = closeModal;
   $("#modalOverlay").addEventListener("click", (e) => {
     if (e.target === $("#modalOverlay")) closeModal();
   });
 
-  $("#resetDataBtn").addEventListener("click", () => {
-    if (confirm("Reset all data to sample defaults?")) {
-      resetDatabase();
+  $("#resetDataBtn").addEventListener("click", async () => {
+    if (!confirm("Reset all data to sample defaults?")) return;
+    try {
+      await resetDatabase();
       showToast("Sample data restored");
-      navigate(currentView);
+      await navigate(currentView);
+    } catch (err) {
+      showToast(err.message || "Reset failed");
     }
   });
 
-  navigate("dashboard");
+  $("#content").innerHTML = `<div class="loading-state"><div class="loading-spinner"></div><p>Connecting to database...</p></div>`;
+
+  try {
+    await initStorage();
+    await navigate("dashboard");
+  } catch (err) {
+    $("#content").innerHTML = `
+      <div class="empty-state">
+        <strong>Connection failed</strong>
+        <p>${escapeHtml(err.message)}</p>
+        <p style="margin-top:12px;font-size:0.85rem">
+          1. Open <strong>http://localhost:3000</strong> (not a file or another port)<br>
+          2. Set your MySQL password in <code>backend/.env</code><br>
+          3. Restart the server: <code>cd backend && npm start</code>
+        </p>
+        <button class="btn btn-primary" style="margin-top:16px" onclick="location.reload()">Retry</button>
+      </div>`;
+  }
 });
