@@ -1,7 +1,8 @@
 # step one: create the database
-CREATE DATABASE employee_erp CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS employee_erp CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE employee_erp;
 
+SET FOREIGN_KEY_CHECKS = 0;
 
 # step two: create the tables
 # tableOne: departments
@@ -408,3 +409,5 @@ CREATE TABLE exit_requests (
     FOREIGN KEY (employee_id) REFERENCES employees(id) # (relationship) becuz employee can submit resignation
     ON UPDATE CASCADE ON DELETE CASCADE
 );
+
+SET FOREIGN_KEY_CHECKS = 1;
